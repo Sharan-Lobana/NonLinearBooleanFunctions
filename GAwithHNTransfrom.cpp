@@ -7,7 +7,7 @@ typedef vector<pair<int,int> > vpii;
 typedef pair<int,int> pii;
 typedef vector<pair<vector<int>,int> >  vpvii;
 typedef map<vector<int>, bool> mvib;
-#define MAX 100  //number of iterations of the GA algorithm
+#define MAX 100000  //number of iterations of the GA algorithm
 #define P 15      //number of parents in a generation
 #define HC true   //flag to use Hill Climbing
 #define N 10      //Cardinality of Boolean Functions
@@ -40,13 +40,12 @@ int computeSCX(int c,int x) {
 	return retval;
 }
 
-complex<int>** fastHNTransform(vi f) {
-  complex<int> **h = new complex<int>*[BITS];
-  for(int i = 0; i < BITS; i++)
-  	h[i] = new complex<int>[BITS];
+vector<vector<complex<int> > > fastHNTransform(vi f) {
+  vector<vector<complex<int> > > h(BITS,vector<complex<int> >(BITS));
   for(int i = 0; i < BITS; i++) {
-    h[0][i].real() = f[i];
-    h[0][i].imag() = 0;
+  	// Change in syntax: in C++11, real() and imag() return value not reference
+    h[0][i].real(f[i]);
+    h[0][i].imag(0);
   }
   complex<int> iota(0.0,1.0);
   complex<int> tempComp(0.0,0.0);
@@ -77,7 +76,7 @@ complex<int>** fastHNTransform(vi f) {
       }
     }
   }
-	return h;
+  return h;
 }
 
 // int* findFDash(int *f, int flag) {
@@ -109,13 +108,15 @@ complex<int>** fastHNTransform(vi f) {
 // }
 
 vi findFDash(vi f, int idx) {
-	int minn[HN_TOP_LIM+1],minc[HN_TOP_LIM];
+	int minn[HN_TOP_LIM],minc[HN_TOP_LIM];
+	for(int i = 0; i < HN_TOP_LIM; i++)
+		minn[i] = 1e9;
 	vi f_1=f;
 	for(int i=0;i<f.size();i++){
 		if(f[i]==0)f_1[i]=1;
 		else f_1[i]=-1;
 	}
-	complex<int>** generalHNTransform = fastHNTransform(f_1);
+	vector<vector<complex<int> > > generalHNTransform = fastHNTransform(f_1);
 
 	calculate_walsh_hadamard(f);
 	for(int u=0;u<BITS;u++){
@@ -125,7 +126,7 @@ vi findFDash(vi f, int idx) {
 	}
 
 	// #####################################
-	int temp = -BITS, maxVal = 0;
+	int temp = -BITS, maxVal;
 	int original_max_val;
 	for(int i = 0; i < BITS; i++) {
 		maxVal = 0;
@@ -138,6 +139,7 @@ vi findFDash(vi f, int idx) {
 		{
 			if(maxVal < minn[j])
 			{
+				// cerr<<maxVal<<' '<<minn[j]<<' '<<j<<'\n';
 				for(int k=HN_TOP_LIM-1;k>j;k--)
 				{
 					minn[k] = minn[k-1];
@@ -162,8 +164,10 @@ vi findFDash(vi f, int idx) {
 	// }
 	cerr<<"Returned c: "<<minc[idx-1]<<' '<<" and corresponding HN transform max: "<<minn[idx-1]<<'\n';
 	cerr<<"Original H transform max: "<<original_max_val<<'\n';
+	cerr<<"global max NonLinearity: "<<global_max_nonlinearity<<'\n';
 
-	int *scx = new int[BITS];
+
+	vector<int> scx(BITS);
 	for(int i = 0; i < BITS; i++)
 		scx[i] = computeSCX(minc[idx-1],i);
 
@@ -384,6 +388,6 @@ int main()
     {
       pool[i] = selection[indices[i].first];
     }
-		cout<<global_max_nonlinearity<<"########################################################\n";
+		cout<<"######################################################## "<<global_max_nonlinearity<<'\n';
 	}
 }
