@@ -7,23 +7,43 @@ typedef vector<pair<int,int> > vpii;
 typedef pair<int,int> pii;
 typedef vector<pair<vector<int>,int> >  vpvii;
 typedef map<vector<int>, bool> mvib;
-#define MAX 100  //number of iterations of the GA algorithm
-#define P 10      //number of parents in a generation
+#define MAX 100000  //number of iterations of the GA algorithm
+#define P 20      //number of parents in a generation
 #define HC true   //flag to use Hill Climbing
 #define N 8       //Cardinality of Boolean Functions
 #define BITS (1<<N)
+
+map<vi,int> written;
 
 int dot_product[BITS][BITS];
 int walsh_hadamard[BITS];
 
 void calculate_walsh_hadamard(vi bf){
-	for(int u=0;u<BITS;u++){
-		walsh_hadamard[u]=0;
-		for(int x=0;x<BITS;x++){
-			if(dot_product[u][x]==bf[x])walsh_hadamard[u]++;
-			else walsh_hadamard[u]--;
-		}
-	}
+
+	for(int i=0;i<BITS;i++)walsh_hadamard[i]=1-2*bf[i];
+
+	for (int len = 1; 2 * len <= BITS; len <<= 1) {
+        for (int i = 0; i < BITS; i += 2 * len) {
+            for (int j = 0; j < len; j++) {
+                int a = walsh_hadamard[i + j];
+                int b = walsh_hadamard[i + j + len];
+
+                walsh_hadamard[i + j] = (a + b);
+                walsh_hadamard[i + j + len] = (a - b);
+            }
+        }
+    }
+
+		// for(int u=0;u<BITS;u++){
+		// 	cout<<u<<endl;s
+		// 	cout<<"fast wala "<<walsh_hadamard[u]<<endl;
+		// 	walsh_hadamard[u]=0;
+		// 	for(int x=0;x<BITS;x++){
+		// 		if(dot_product[u][x]==bf[x])walsh_hadamard[u]++;
+		// 		else walsh_hadamard[u]--;
+		// 	}
+		// 	cout<<"slow wala "<<walsh_hadamard[u]<<endl;
+		// }
 }
 
 int findNonLinearity(vi bf){
@@ -143,7 +163,7 @@ int main()
     vi child;
     for(int j = 0; j < P; j++)
     {
-      for(int k = j+1; k < P; k++)
+      for(int k = 0; k < P; k++)if(j!=k)
       {
         child = mergeParents(pool[j],pool[k]);  //generate this child
         if(HC)
@@ -168,12 +188,24 @@ int main()
         maxNonLinearity = temp;
         maxNonLinearityBF = iter->first;
       }
+
+			if(temp == 120 && !written[iter->first])
+			{
+				written[iter->first] = 1;
+				FILE *fp = fopen("functions_8_bit.txt","a");
+				fprintf(fp, "%d ",120);
+				for(auto x:iter->first)
+					fprintf(fp, "%d", x);
+				fprintf(fp, "\n");
+				fclose(fp);
+			}
     }
     sort(indices.begin(), indices.end(), mycomp);
     for(int i = 0; i < P; i++)
     {
       pool[i] = selection[indices[i].first];
     }
+		cout<<maxNonLinearity<<endl;
   }
-  cout<<maxNonLinearity<<endl;
+  // cout<<maxNonLinearity<<endl;
 }

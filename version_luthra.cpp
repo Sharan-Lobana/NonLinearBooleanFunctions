@@ -8,15 +8,10 @@ typedef pair<int,int> pii;
 typedef vector<pair<vector<int>,int> >  vpvii;
 typedef map<vector<int>, bool> mvib;
 #define MAX 100  //number of iterations of the GA algorithm
-#define P 15      //number of parents in a generation
+#define P 10      //number of parents in a generation
 #define HC true   //flag to use Hill Climbing
 #define N 10      //Cardinality of Boolean Functions
 #define BITS (1<<N)
-#define RAND_LIM 1000000
-#define HN_PROB 0.05
-#define HN_TOP_LIM 10
-
-map<vi,int> written;
 
 int dot_product[BITS][BITS];
 int walsh_hadamard[BITS];
@@ -108,8 +103,8 @@ complex<int>** fastHNTransform(vi f) {
 // 	return fDash;
 // }
 
-vi findFDash(vi f, int idx) {
-	int minn[HN_TOP_LIM+1],minc[HN_TOP_LIM];
+
+vi findFDash(vi f, int flag) {
 	vi f_1=f;
 	for(int i=0;i<f.size();i++){
 		if(f[i]==0)f_1[i]=1;
@@ -125,7 +120,7 @@ vi findFDash(vi f, int idx) {
 	}
 
 	// #####################################
-	int temp = -BITS, maxVal = 0;
+	int cOptimum = 0, temp = -BITS, maxVal = 0, globalMin = BITS;
 	int original_max_val;
 	for(int i = 0; i < BITS; i++) {
 		maxVal = 0;
@@ -134,38 +129,21 @@ vi findFDash(vi f, int idx) {
 			maxVal = max(abs(temp),maxVal);
 		}
 		if(i == 0)	original_max_val = maxVal;
-		for(int j=0;j<HN_TOP_LIM;j++)
-		{
-			if(maxVal < minn[j])
-			{
-				for(int k=HN_TOP_LIM-1;k>j;k--)
-				{
-					minn[k] = minn[k-1];
-					minc[k] = minc[k-1];
-				}
-				minn[j] = maxVal;
-				minc[j] = i;
-				break;
-			}
+		if(maxVal < globalMin) {
+			cOptimum = i;
+			globalMin = maxVal;
 		}
-		// if(maxVal < globalMin) {
-		// 	cOptimum = i;
-		// 	globalMin = maxVal;
-		// }
 	}
-	// if(original_max_val == globalMin)
-	// 	cOptimum = 0;
-	// else
-	// {
-	// 	cout<<"The optimum value of c is: "<<cOptimum<<" and the H transform max is: "<<globalMin<<endl;
-	// 	cout<<"Original MaxVal: "<<original_max_val<<'\n';
-	// }
-	cerr<<"Returned c: "<<minc[idx-1]<<' '<<" and corresponding HN transform max: "<<minn[idx-1]<<'\n';
-	cerr<<"Original H transform max: "<<original_max_val<<'\n';
-
+	if(original_max_val == globalMin)
+		cOptimum = 0;
+	else
+	{
+		cout<<"The optimum value of c is: "<<cOptimum<<" and the H transform max is: "<<globalMin<<endl;
+		cout<<"Original MaxVal: "<<original_max_val<<'\n';
+	}
 	int *scx = new int[BITS];
 	for(int i = 0; i < BITS; i++)
-		scx[i] = computeSCX(minc[idx-1],i);
+		scx[i] = computeSCX(cOptimum,i);
 
 	vi fDash(BITS);
 	for(int i = 0; i < BITS; i++)
@@ -175,33 +153,14 @@ vi findFDash(vi f, int idx) {
 }
 
 void calculate_walsh_hadamard(vi bf){
-
-	for(int i=0;i<BITS;i++)walsh_hadamard[i]=1-2*bf[i];
-
-	for (int len = 1; 2 * len <= BITS; len <<= 1) {
-        for (int i = 0; i < BITS; i += 2 * len) {
-            for (int j = 0; j < len; j++) {
-                int a = walsh_hadamard[i + j];
-                int b = walsh_hadamard[i + j + len];
-
-                walsh_hadamard[i + j] = (a + b);
-                walsh_hadamard[i + j + len] = (a - b);
-            }
-        }
-    }
-
-		// for(int u=0;u<BITS;u++){
-		// 	cout<<u<<endl;s
-		// 	cout<<"fast wala "<<walsh_hadamard[u]<<endl;
-		// 	walsh_hadamard[u]=0;
-		// 	for(int x=0;x<BITS;x++){
-		// 		if(dot_product[u][x]==bf[x])walsh_hadamard[u]++;
-		// 		else walsh_hadamard[u]--;
-		// 	}
-		// 	cout<<"slow wala "<<walsh_hadamard[u]<<endl;
-		// }
+	for(int u=0;u<BITS;u++){
+		walsh_hadamard[u]=0;
+		for(int x=0;x<BITS;x++){
+			if(dot_product[u][x]==bf[x])walsh_hadamard[u]++;
+			else walsh_hadamard[u]--;
+		}
+	}
 }
-
 
 int findNonLinearity(vi bf){
 	calculate_walsh_hadamard(bf);
@@ -216,7 +175,7 @@ vi hill_climb(vi bf){
 	// int iter=4;
 while(true){
 	vi original_bf = bf;
-	// cout<<"Non linearity before hill climb: "<<findNonLinearity(bf)<<' '<<global_max_nonlinearity<<'\n';
+	cout<<"Non linearity before hill climb: "<<findNonLinearity(bf)<<' '<<global_max_nonlinearity<<'\n';
 
 	while(true){
 
@@ -241,15 +200,13 @@ while(true){
 		if(i==BITS)break;
 	}
 
-	// cout<<"Non linearity after hill climb: "<<findNonLinearity(bf)<<' '<<global_max_nonlinearity<<'\n';
-
-	if( rand()%RAND_LIM < RAND_LIM * HN_PROB )
-		bf = findFDash(bf,rand()%HN_TOP_LIM + 1);
+	cout<<"Non linearity after hill climb: "<<findNonLinearity(bf)<<' '<<global_max_nonlinearity<<'\n';
+	// bf = findFDash(bf,0);
 	if(original_bf==bf)break;
-	// cout<<"Non linearity after finding fDash: "<<findNonLinearity(bf)<<'\n';
+	cout<<"Non linearity after finding fDash: "<<findNonLinearity(bf)<<'\n';
 
 }
-	// cout<<"Returning from hill_climb()\n";
+	cout<<"Returning from hill_climb()\n";
 	return bf;
 }
 
@@ -340,9 +297,8 @@ int main()
     vi child;
     for(int j = 0; j < P; j++)
     {
-      for(int k = 0; k < P; k++)
+      for(int k = 0; k < P; k++)if(j!=k)
       {
-				if(k==j)	continue;
         child = mergeParents(pool[j],pool[k]);  //generate this child
         if(HC)
           child = hill_climb(child);
@@ -366,24 +322,12 @@ int main()
         maxNonLinearity = temp;
         maxNonLinearityBF = iter->first;
       }
-
-			if(temp > 482 && !written[iter->first])
-			{
-				written[iter->first] = 1;
-				FILE *fp = fopen("functions_10_bit.txt","a");
-				fprintf(fp, "%d ",temp);
-				for(int i = 0; i < iter->first.size();i++)
-					fprintf(fp, "%d", iter->first[i]);
-				fprintf(fp, "\n");
-				fclose(fp);
-			}
-
     }
     sort(indices.begin(), indices.end(), mycomp);
     for(int i = 0; i < P; i++)
     {
       pool[i] = selection[indices[i].first];
     }
-		cout<<global_max_nonlinearity<<"########################################################\n";
-	}
+  }
+  cout<<maxNonLinearity<<endl;
 }
