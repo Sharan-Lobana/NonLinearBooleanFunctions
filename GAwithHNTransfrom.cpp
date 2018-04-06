@@ -8,13 +8,15 @@ typedef pair<int,int> pii;
 typedef vector<pair<vector<int>,int> >  vpvii;
 typedef map<vector<int>, bool> mvib;
 #define MAX 100000  //number of iterations of the GA algorithm
-#define P 15      //number of parents in a generation
+#define P 40      //number of parents in a generation
 #define HC true   //flag to use Hill Climbing
 #define N 10      //Cardinality of Boolean Functions
 #define BITS (1<<N)
 #define RAND_LIM 1000000
-#define HN_PROB 0.05
-#define HN_TOP_LIM 10
+#define HN_PROB 0.1
+#define HN_TOP_LIM 25
+
+int WRITE_LIM = 483;
 
 map<vi,int> written;
 
@@ -162,14 +164,22 @@ vi findFDash(vi f, int idx) {
 	// 	cout<<"The optimum value of c is: "<<cOptimum<<" and the H transform max is: "<<globalMin<<endl;
 	// 	cout<<"Original MaxVal: "<<original_max_val<<'\n';
 	// }
-	cerr<<"Returned c: "<<minc[idx-1]<<' '<<" and corresponding HN transform max: "<<minn[idx-1]<<'\n';
-	cerr<<"Original H transform max: "<<original_max_val<<'\n';
-	cerr<<"global max NonLinearity: "<<global_max_nonlinearity<<'\n';
+	// cerr<<"Returned c: "<<minc[idx-1]<<' '<<" and corresponding HN transform max: "<<minn[idx-1]<<'\n';
+	// cerr<<"Original H transform max: "<<original_max_val<<'\n';
+	// cerr<<"global max NonLinearity: "<<global_max_nonlinearity<<'\n';
 
-
+	int selected_c = minc[idx-1];
+	for(int i=0;i<HN_TOP_LIM;i++)
+		if((minc[i]&(minc[i]-1)) && minn[i] <= original_max_val)
+		{
+			selected_c = minc[idx-1];
+			cerr<<"Found better or equal function: "<<i<<' '<<minc[i]<<' '<<minn[i]<<' '<<original_max_val<<'\n';
+			break;
+		}
+		
 	vector<int> scx(BITS);
 	for(int i = 0; i < BITS; i++)
-		scx[i] = computeSCX(minc[idx-1],i);
+		scx[i] = computeSCX(selected_c,i);
 
 	vi fDash(BITS);
 	for(int i = 0; i < BITS; i++)
@@ -371,7 +381,12 @@ int main()
         maxNonLinearityBF = iter->first;
       }
 
-			if(temp > 482 && !written[iter->first])
+      	if(written.size() > 100)
+      	{
+      		written.clear();
+      		WRITE_LIM++;
+      	}
+			if(temp > WRITE_LIM && !written[iter->first])
 			{
 				written[iter->first] = 1;
 				FILE *fp = fopen("functions_10_bit.txt","a");
