@@ -13,7 +13,7 @@ typedef map<vector<int>, bool> mvib;
 #define N 10      //Cardinality of Boolean Functions
 #define BITS (1<<N)
 #define RAND_LIM 1000000
-#define HN_PROB 0.1
+#define HN_PROB 0
 #define HN_TOP_LIM 25
 
 int WRITE_LIM = 483;
@@ -226,36 +226,48 @@ int findNonLinearity(vi bf){
 	return ((BITS-mx)/2);
 }
 
+int List[2][BITS], List_cnt[2];
+
 vi hill_climb(vi bf){
 	// int iter=4;
 while(true){
-	vi original_bf = bf;
 	// cout<<"Non linearity before hill climb: "<<findNonLinearity(bf)<<' '<<global_max_nonlinearity<<'\n';
-
+	calculate_walsh_hadamard(bf);
 	while(true){
-
-
-		calculate_walsh_hadamard(bf);
-
 		int i,mx=0;
 		for(i=0;i<BITS;i++)mx=max(mx,abs(walsh_hadamard[i]));
+		List_cnt[0] = List_cnt[1] = 0;
+		for(int u=0;u<BITS;u++)
+		{
+			if(walsh_hadamard[u]==mx || walsh_hadamard[u]==(mx-2))
+				List[0][List_cnt[0]++]=u;
+			if(walsh_hadamard[u]==(-mx) || walsh_hadamard[u]==(2-mx))
+				List[1][List_cnt[1]++]=u;
+		}
 		for(i=0;i<BITS;i++){
 			bool satisfies=true;
-			for(int u=0;u<BITS;u++){
-				if(walsh_hadamard[u]==mx || walsh_hadamard[u]==(mx-2))
-					satisfies&=(bf[i]==dot_product[u][i]);
-				if(walsh_hadamard[u]==(-mx) || walsh_hadamard[u]==(2-mx))
-					satisfies&=(bf[i]!=dot_product[u][i]);
-			}
-			if(satisfies){
+			for(int u=0;u<List_cnt[0] && satisfies;u++)
+				satisfies&=(bf[i]==dot_product[List[0][u]][i]);
+			for(int u=0;u<List_cnt[1] && satisfies;u++)
+				satisfies&=(bf[i]!=dot_product[List[1][u]][i]);
+			if(satisfies)
+			{
 				bf[i]^=1;
 				break;
 			}
 		}
 		if(i==BITS)break;
+		for(int u = 0; u < BITS; u++)
+		{
+			if(dot_product[u][i]^bf[i])
+				walsh_hadamard[u]-=2;
+			else
+				walsh_hadamard[u]+=2;
+		}
 	}
 
 	// cout<<"Non linearity after hill climb: "<<findNonLinearity(bf)<<' '<<global_max_nonlinearity<<'\n';
+	vi original_bf = bf;
 
 	if( rand()%RAND_LIM < RAND_LIM * HN_PROB )
 		bf = findFDash(bf,rand()%HN_TOP_LIM + 1);
